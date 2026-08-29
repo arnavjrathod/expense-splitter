@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>My Balances</h1>
+<p class="{% if total > 0 %}pos{% elif total < 0 %}neg{% endif %} big-total">
+  Total across all groups: <strong>{{ "%.2f"|format(total / 100) }} USD</strong>
+  {% if total > 0 %}(you are owed){% elif total < 0 %}(you owe){% endif %}
+</p>
+<div class="card-grid">
+  {% for s in summary %}
+  <div class="card">
+    <h3><a href="{{ url_for('groups.detail', group_id=s.group.id) }}">{{ s.group.name }}</a></h3>
+    <p class="muted">{{ s.member_count }} member{{ '' if s.member_count == 1 else 's' }}
+       {% if s.is_admin %}· admin{% endif %}</p>
+    <p class="{% if s.my_balance > 0 %}pos{% elif s.my_balance < 0 %}neg{% endif %}">
+      Your balance: {{ "%.2f"|format(s.my_balance / 100) }} USD
+      {% if s.my_balance > 0 %}(owed to you){% elif s.my_balance < 0 %}(you owe){% endif %}
+    </p>
+    <a class="btn" href="{{ url_for('groups.detail', group_id=s.group.id) }}">Open &amp; settle up →</a>
+  </div>
+  {% else %}
+  <div class="card">
+    <p>No groups yet.</p>
+    <a class="btn" href="{{ url_for('groups.create') }}">Create your first group</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
