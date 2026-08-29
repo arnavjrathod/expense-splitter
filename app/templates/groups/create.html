@@ -3,16 +3,19 @@
 {% block content %}
 <div class="card narrow">
   <h1>Create a group</h1>
+  <p class="muted small">Track shared expenses and settle up with the fewest payments.</p>
   <form method="post">
-    <label>Name <input type="text" name="name" required></label>
-    <label>Description <textarea name="description" rows="2"></textarea></label>
+    <label>Name <input type="text" name="name" placeholder="e.g. Trip to Lisbon" required></label>
+    <label>Description <textarea name="description" rows="2" placeholder="Optional — what's this group for?"></textarea></label>
     <label>Currency
       <select name="currency">
         <option>USD</option><option>EUR</option><option>GBP</option>
         <option>INR</option><option>JPY</option>
       </select>
     </label>
-    <button type="submit">Create group</button>
+    <div class="form-actions">
+      <button type="submit">Create group</button>
+    </div>
   </form>
 </div>
 {% endblock %}

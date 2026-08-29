@@ -1,17 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Groups{% endblock %}
 {% block content %}
-<h1>My Groups</h1>
-<a class="btn" href="{{ url_for('groups.create') }}">+ New group</a>
+<div class="page-head">
+  <h1>My groups</h1>
+  <a class="btn" href="{{ url_for('groups.create') }}">＋ New group</a>
+</div>
 <div class="card-grid">
   {% for g in groups %}
   <div class="card">
-    <h3><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.name }}</a></h3>
-    <p class="muted">{{ g.member_count }} member{{ '' if g.member_count == 1 else 's' }} · {{ g.currency }}</p>
-    {% if g.description %}<p>{{ g.description }}</p>{% endif %}
+    <h2 style="margin-bottom:.2rem">
+      <a href="{{ url_for('groups.detail', group_id=g.id) }}"
+         style="text-decoration:none">{{ g.name }}</a>
+    </h2>
+    <p class="muted small" style="margin-top:0">
+      {{ g.member_count }} member{{ '' if g.member_count == 1 else 's' }} · {{ g.currency }}
+    </p>
+    {% if g.description %}<p class="small">{{ g.description }}</p>{% endif %}
   </div>
   {% else %}
-  <p class="muted">You are not in any groups yet.</p>
+  <div class="empty" style="grid-column:1/-1">
+    <p>You are not in any groups yet.</p>
+    <a class="btn" href="{{ url_for('groups.create') }}">Create a group</a>
+  </div>
   {% endfor %}
 </div>
 {% endblock %}

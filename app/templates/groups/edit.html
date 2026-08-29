@@ -2,12 +2,16 @@
 {% block title %}Edit {{ group.name }}{% endblock %}
 {% block content %}
 <div class="card narrow">
+  <a class="back" href="{{ url_for('groups.detail', group_id=group.id) }}">← Back to {{ group.name }}</a>
   <h1>Edit group</h1>
   <form method="post">
     <label>Name <input type="text" name="name" value="{{ group.name }}" required></label>
     <label>Description <textarea name="description" rows="2">{{ group.description }}</textarea></label>
     <label>Currency <input type="text" name="currency" value="{{ group.currency }}"></label>
-    <button type="submit">Save</button>
+    <div class="form-actions">
+      <button type="submit">Save</button>
+      <a class="btn secondary" href="{{ url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+    </div>
   </form>
 </div>
 {% endblock %}
