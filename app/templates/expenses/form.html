@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if expense else 'Add' }} expense — {{ group.name }}{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>{{ 'Edit' if expense else 'Add' }} expense</h1>
+  {% if warn %}
+  <div class="flash warn">⚠️ This group has recorded settlements. Editing will
+    change existing balances — check the box below to confirm.</div>
+  {% endif %}
+  <form method="post" id="expense-form">
+    <label>Title <input type="text" name="title" value="{{ expense.title if expense else '' }}" required></label>
+    <label>Amount ({{ group.currency }}) <input type="number" step="0.01" min="0.01" name="amount" id="amount" value="{{ '%.2f'|format(expense.amount_cents / 100) if expense else '' }}" required></label>
+
+    <label>Paid by
+      <select name="payer_id">
+        {% for m in members %}
+        <option value="{{ m.id }}" {% if expense and expense.payer_id == m.id %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="row">
+      <label>Date <input type="date" name="spent_on" value="{{ expense.spent_on if expense else '' }}"></label>
+      <label>Category
+        <select name="category">
+          {% for c in ['', 'food', 'transport', 'accommodation', 'entertainment', 'other'] %}
+          <option value="{{ c }}" {% if expense and expense.category == c %}selected{% endif %}>{{ c or '—' }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <label>Notes <textarea name="notes" rows="2">{{ expense.notes if expense else '' }}</textarea></label>
+
+    <fieldset>
+      <legend>Split type</legend>
+      <label class="radio"><input type="radio" name="split_type" value="equal"
+        {% if not expense or expense.split_type == 'equal' %}checked{% endif %}> Equally</label>
+      <label class="radio"><input type="radio" name="split_type" value="percentage"
+        {% if expense and expense.split_type == 'percentage' %}checked{% endif %}> By percentage</label>
+      <label class="radio"><input type="radio" name="split_type" value="exact"
+        {% if expense and expense.split_type == 'exact' %}checked{% endif %}> By exact amounts</label>
+    </fieldset>
+
+    <div id="split-area">
+      <h3>Participants / split</h3>
+      <table class="split-table" data-currency="{{ group.currency }}">
+        {% for m in members %}
+        {% set key = m.id|string %}
+        <tr data-uid="{{ m.id }}">
+          <td class="eq-col">
+            {% set is_eq = (expense is none) or (expense.split_type == 'equal' and shares.get(key, 0) > 0) or (expense.split_type != 'equal' and key in shares) %}
+            <input type="checkbox" class="participant" name="participants" value="{{ m.id }}"
+                   {% if is_eq %}checked{% endif %}>
+          </td>
+          <td>{{ m.name }}</td>
+          <td class="pct-col"><input type="number" step="0.01" min="0" name="pct_{{ m.id }}"
+                value="{{ '%.2f'|format(shares[key] / 100) if expense and expense.split_type == 'percentage' and key in shares else '' }}"
+                placeholder="%"></td>
+          <td class="amt-col"><input type="number" step="0.01" min="0" name="amt_{{ m.id }}"
+                value="{{ '%.2f'|format(shares[key] / 100) if expense and expense.split_type == 'exact' and key in shares else '' }}"
+                placeholder="{{ group.currency }}"></td>
+          <td class="preview muted" data-preview="{{ m.id }}"></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p id="split-status" class="muted"></p>
+    </div>
+
+    {% if warn %}
+    <label class="radio"><input type="checkbox" name="confirm_warning" value="yes">
+      I understand this will alter existing settlement balances</label>
+    {% endif %}
+    <button type="submit">{{ 'Save changes' if expense else 'Add expense' }}</button>
+    <a class="btn secondary" href="{{ url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}New group{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Create a group</h1>
+  <form method="post">
+    <label>Name <input type="text" name="name" required></label>
+    <label>Description <textarea name="description" rows="2"></textarea></label>
+    <label>Currency
+      <select name="currency">
+        <option>USD</option><option>EUR</option><option>GBP</option>
+        <option>INR</option><option>JPY</option>
+      </select>
+    </label>
+    <button type="submit">Create group</button>
+  </form>
+</div>
+{% endblock %}
