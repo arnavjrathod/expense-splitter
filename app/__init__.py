@@ -44,6 +44,12 @@ def create_app(test_config: dict | None = None) -> Flask:
     def inject_user():
         return {"current_user": current_user()}
 
+    @app.template_filter("initials")
+    def initials(name):
+        """First letters of the first two words, uppercased ("Ada L" -> "AL")."""
+        parts = (name or "?").split()
+        return ("".join(p[0] for p in parts[:2]) or "?").upper()
+
     @app.template_filter("money")
     def money(cents):
         from .algorithms import fmt_cents

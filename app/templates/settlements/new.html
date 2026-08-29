@@ -2,23 +2,29 @@
 {% block title %}Record settlement — {{ group.name }}{% endblock %}
 {% block content %}
 <div class="card narrow">
+  <a class="back" href="{{ url_for('groups.detail', group_id=group.id) }}">← Back to {{ group.name }}</a>
   <h1>Record a settlement</h1>
+  <p class="muted small">Log a real-world payment between members. Balances update immediately.</p>
   <form method="post">
     <label>Paid by
       <select name="from_id" required>
-        {% for m in members %}<option value="{{ m.id }}">{{ m.name }} ({{ "%.2f"|format(balances[m.id] / 100) }})</option>{% endfor %}
+        {% for m in members %}<option value="{{ m.id }}">{{ m.name }} — {{ balances[m.id] | money }}</option>{% endfor %}
       </select>
     </label>
     <label>Paid to
       <select name="to_id" required>
-        {% for m in members %}<option value="{{ m.id }}">{{ m.name }} ({{ "%.2f"|format(balances[m.id] / 100) }})</option>{% endfor %}
+        {% for m in members %}<option value="{{ m.id }}">{{ m.name }} — {{ balances[m.id] | money }}</option>{% endfor %}
       </select>
     </label>
     <label>Amount ({{ group.currency }}) <input type="number" step="0.01" min="0.01" name="amount" required></label>
-    <label>Date <input type="date" name="paid_on"></label>
-    <label>Note <input type="text" name="note"></label>
-    <button type="submit">Record settlement</button>
-    <a class="btn secondary" href="{{ url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+    <div class="row">
+      <label>Date <input type="date" name="paid_on"></label>
+    </div>
+    <label>Note <input type="text" name="note" placeholder="Optional"></label>
+    <div class="form-actions">
+      <button type="submit">Record settlement</button>
+      <a class="btn secondary" href="{{ url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+    </div>
   </form>
 </div>
 {% endblock %}

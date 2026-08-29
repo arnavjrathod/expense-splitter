@@ -1,27 +1,40 @@
 {% extends "base.html" %}
 {% block title %}{{ group.name }}{% endblock %}
 {% block content %}
+<a class="back" href="{{ url_for('groups.list_groups') }}">← All groups</a>
 <div class="page-head">
-  <h1>{{ group.name }} <span class="muted">({{ group.currency }})</span></h1>
   <div>
-    <a class="btn" href="{{ url_for('expenses.new', group_id=group.id) }}">+ Add expense</a>
+    <h1>{{ group.name }}
+      <span class="badge neutral">{{ group.currency }}</span>
+      {% if is_admin %}<span class="badge">you administer</span>{% endif %}
+    </h1>
+    {% if group.description %}<p class="muted" style="margin:0">{{ group.description }}</p>{% endif %}
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="{{ url_for('expenses.new', group_id=group.id) }}">＋ Add expense</a>
     <a class="btn secondary" href="{{ url_for('settlements.new', group_id=group.id) }}">Record settlement</a>
   </div>
 </div>
-{% if group.description %}<p class="muted">{{ group.description }}</p>{% endif %}
 
 <div class="two-col">
   <section class="card">
     <h2>Balances</h2>
     <table>
       {% for m in members %}
+      {% set b = balances[m.id] %}
       <tr>
-        <td>{{ m.name }}</td>
-        <td class="amount {% if balances[m.id] > 0 %}pos{% elif balances[m.id] < 0 %}neg{% endif %}">
-          {{ "%.2f"|format(balances[m.id] / 100) }} USD
+        <td style="width:34px"><span class="avatar sm">{{ m.name | initials }}</span></td>
+        <td style="font-weight:600">{{ m.name }}
+          {% if m.id == group.admin_id %}<span class="badge neutral">admin</span>{% endif %}
+          {% if m.id == current_user.id %}<span class="muted small">(you)</span>{% endif %}
         </td>
-        <td class="muted">
-          {% if balances[m.id] > 0 %}is owed{% elif balances[m.id] < 0 %}owes{% else %}settled{% endif %}
+        <td class="amount">
+          <span class="balance-chip {% if b > 0 %}pos{% elif b < 0 %}neg{% else %}zero{% endif %}">
+            {{ b | money }}
+          </span>
+        </td>
+        <td class="muted small">
+          {% if b > 0 %}is owed{% elif b < 0 %}owes{% else %}settled{% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -29,39 +42,42 @@
   </section>
 
   <section class="card">
-    <h2>Suggested settlement plan <span class="muted">(minimum transactions)</span></h2>
+    <h2>Suggested settlement plan <span class="muted small">(minimum transactions)</span></h2>
     {% if plan %}
-      <ol>
+      <ol class="plan">
         {% for t in plan %}
         <li><strong>{{ member_by_id[t.from_id].name }}</strong> pays
-            <strong>{{ member_by_id[t.to_id].name }}</strong>
-            <span class="amount">{{ "%.2f"|format(t.amount_cents / 100) }} USD</span></li>
+          <strong>{{ member_by_id[t.to_id].name }}</strong>
+          <span class="amount">{{ t.amount_cents | money }}
+            <span class="currency">{{ group.currency }}</span></span>
+        </li>
         {% endfor %}
       </ol>
     {% else %}
-      <p class="pos">✅ Everyone is settled up!</p>
+      <p class="settled-note">✓ Everyone is settled up!</p>
     {% endif %}
   </section>
 </div>
 
 <section class="card">
-  <h2>Activity feed</h2>
+  <h2>Activity</h2>
   <table>
-    <thead><tr><th>Type</th><th>What</th><th>Amount</th><th>By</th><th>When</th>
+    <thead><tr><th>Type</th><th>What</th><th class="amount">Amount</th><th>By</th><th>When</th>
       <th></th></tr></thead>
     <tbody>
     {% for e in expenses %}
       <tr>
-        <td>Expense</td>
+        <td><span class="badge">expense</span></td>
         <td>
           <strong>{{ e.title }}</strong>
-          <span class="muted">{{ e.spent_on }}{% if e.category %} · {{ e.category }}{% endif %}
-            · paid by {{ e.payer_name }} · {{ e.split_type }} split</span>
+          <div class="muted small">{{ e.spent_on }}{% if e.category %} · {{ e.category }}{% endif %}
+            · paid by {{ e.payer_name }} · {{ e.split_type }} split</div>
           {% if e.notes %}<div class="muted small">{{ e.notes }}</div>{% endif %}
         </td>
-        <td class="amount">{{ "%.2f"|format(e.amount_cents / 100) }}</td>
+        <td class="amount">{{ e.amount_cents | money }}
+          <span class="currency">{{ group.currency }}</span></td>
         <td>{{ e.payer_name }}</td>
-        <td class="muted">{{ e.created_at }}</td>
+        <td class="muted small">{{ e.created_at }}</td>
         <td class="actions">
           <a href="{{ url_for('expenses.edit', group_id=group.id, expense_id=e.id) }}">edit</a>
           <form method="post" class="inline"
@@ -74,12 +90,13 @@
     {% endfor %}
     {% for s in settlements %}
       <tr>
-        <td>Settlement</td>
+        <td><span class="badge pos">settlement</span></td>
         <td><strong>{{ s.from_name }}</strong> paid <strong>{{ s.to_name }}</strong>
-            <span class="muted">{{ s.paid_on }}{% if s.note %} · {{ s.note }}{% endif %}</span></td>
-        <td class="amount">{{ "%.2f"|format(s.amount_cents / 100) }}</td>
+          <div class="muted small">{{ s.paid_on }}{% if s.note %} · {{ s.note }}{% endif %}</div></td>
+        <td class="amount">{{ s.amount_cents | money }}
+          <span class="currency">{{ group.currency }}</span></td>
         <td>{{ s.from_name }}</td>
-        <td class="muted">{{ s.created_at }}</td>
+        <td class="muted small">{{ s.created_at }}</td>
         <td class="actions">
           <form method="post" class="inline"
                 action="{{ url_for('settlements.delete', group_id=group.id, settlement_id=s.id) }}">
@@ -89,51 +106,61 @@
       </tr>
     {% endfor %}
     {% if not expenses and not settlements %}
-      <tr><td colspan="6" class="muted">No activity yet.</td></tr>
+      <tr><td colspan="6" class="muted">No activity yet — add your first expense above.</td></tr>
     {% endif %}
     </tbody>
   </table>
 </section>
 
-<section class="two-col">
+<div class="two-col">
   <div class="card">
     <h2>Members</h2>
     <ul class="members">
       {% for m in members %}
-      <li>{{ m.name }} <span class="muted">{{ m.email }}</span>
+      <li>
+        <span class="avatar sm">{{ m.name | initials }}</span>
+        <div class="who">
+          <strong>{{ m.name }}</strong>
+          <span class="muted small">{{ m.email }}</span>
+        </div>
+        {% if m.id == group.admin_id %}<span class="badge neutral">admin</span>{% endif %}
         {% if is_admin and m.id != group.admin_id %}
         <form method="post" class="inline" action="{{ url_for('groups.remove_member', group_id=group.id, user_id=m.id) }}"
               data-warn="Remove {{ m.name }} from the group?">
           <button class="link danger" type="submit">remove</button>
         </form>
         {% endif %}
-        {% if m.id == group.admin_id %}<span class="badge">admin</span>{% endif %}
       </li>
       {% endfor %}
     </ul>
     <h3>Invite by email</h3>
-    <form method="post" action="{{ url_for('groups.invite', group_id=group.id) }}" class="row">
-      <input type="email" name="email" placeholder="friend@example.com" required>
+    <form method="post" action="{{ url_for('groups.invite', group_id=group.id) }}" class="row invite-form">
+      <label class="muted" style="flex:1;margin:0;min-width:160px">
+        <span class="small" style="color:var(--faint)">Email address</span>
+        <input type="email" name="email" placeholder="friend@example.com" required>
+      </label>
       <button type="submit">Invite</button>
     </form>
   </div>
 
   <div class="card">
-    <h2>Group settings</h2>
-    <p class="muted">Notifications:
-      <a href="{{ url_for('settlements.toggle_notifications', group_id=group.id) }}">toggle email notifications for me</a>
+    <h2>Settings</h2>
+    <p>
+      <a href="{{ url_for('settlements.toggle_notifications', group_id=group.id) }}">Toggle email notifications for me</a>
     </p>
     {% if is_admin %}
     <p><a href="{{ url_for('groups.edit', group_id=group.id) }}">Edit group details</a></p>
     <details>
-      <summary class="danger">Delete group</summary>
-      <p class="muted">Only possible when all balances are zero. Type the group name to confirm.</p>
+      <summary class="danger">Delete group…</summary>
+      <p class="muted small">Only possible when all balances are zero. Type the group name to confirm.</p>
       <form method="post" action="{{ url_for('groups.delete', group_id=group.id) }}">
         <input type="text" name="confirm" placeholder="{{ group.name }}" required>
-        <button class="danger" type="submit">Delete group</button>
+        <div class="form-actions">
+          <button class="danger" type="submit">Delete group</button>
+        </div>
       </form>
     </details>
     {% endif %}
   </div>
-</section>
+</div>
 {% endblock %}

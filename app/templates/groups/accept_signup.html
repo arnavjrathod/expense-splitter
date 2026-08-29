@@ -3,13 +3,15 @@
 {% block content %}
 <div class="card narrow">
   <h1>You're invited to “{{ group.name }}”</h1>
-  <p class="muted">Invited email: <strong>{{ email }}</strong></p>
-  <p>You don't have an account yet — create one below to join the group.</p>
+  <p class="muted small">Invited email: <strong>{{ email }}</strong></p>
+  <p class="small">You don't have an account yet — create one below to join the group.</p>
   <form method="post" action="{{ url_for('groups.accept_invite_signup', token=token) }}">
-    <label>Your name <input type="text" name="name" required></label>
-    <label>Password (min 6 chars) <input type="password" name="password" minlength="6" required></label>
-    <button type="submit">Sign up &amp; join group</button>
+    <label>Your name <input type="text" name="name" required autofocus></label>
+    <label>Password <input type="password" name="password" minlength="6" required></label>
+    <div class="form-actions">
+      <button type="submit">Sign up &amp; join group</button>
+    </div>
   </form>
-  <p class="muted">Already have an account with this email? <a href="{{ url_for('auth.login', next=url_for('groups.accept_invite', token=token)) }}">Log in</a></p>
+  <p class="muted small">Already have an account with this email? <a href="{{ url_for('auth.login', next=url_for('groups.accept_invite', token=token)) }}">Log in</a></p>
 </div>
 {% endblock %}
