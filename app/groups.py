@@ -68,10 +68,20 @@ def detail(group_id, group, membership):
            WHERE s.group_id = ? ORDER BY s.paid_on DESC, s.id DESC""",
         (group_id,)).fetchall()
     member_by_id = {m["id"]: m for m in members}
+    expense_participants = {
+        e["id"]: [member_by_id[uid["user_id"]]["name"]
+                  for uid in db.execute(
+                      "SELECT user_id FROM expense_shares "
+                      "WHERE expense_id = ? AND share_cents > 0",
+                      (e["id"],)).fetchall()
+                  if uid["user_id"] in member_by_id]
+        for e in expenses
+    }
     return render_template(
         "groups/detail.html", group=group, members=members,
         member_by_id=member_by_id, balances=balances, plan=plan,
         expenses=expenses, settlements=settlements,
+        expense_participants=expense_participants,
         is_admin=group["admin_id"] == g.user["id"],
         has_settlements=len(settlements) > 0)
 

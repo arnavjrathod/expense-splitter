@@ -56,7 +56,11 @@
         <td>
           <strong>{{ e.title }}</strong>
           <span class="muted">{{ e.spent_on }}{% if e.category %} · {{ e.category }}{% endif %}
-            · paid by {{ e.payer_name }} · {{ e.split_type }} split</span>
+            · paid by {{ e.payer_name }} · {{ e.split_type }} split
+            {% if expense_participants.get(e.id) %}
+            · with {{ expense_participants[e.id]|join(', ') }}
+            {% endif %}
+          </span>
           {% if e.notes %}<div class="muted small">{{ e.notes }}</div>{% endif %}
         </td>
         <td class="amount">{{ "%.2f"|format(e.amount_cents / 100) }}</td>
