@@ -214,6 +214,69 @@ class TestExpenses:
         rv = client.get(f"/groups/{gid}")
         assert b"Dinner" in rv.data
 
+    def test_edit_expense_can_remove_participant(self, client):
+        # Participants in an equal split can be changed after creation.
+        signup(client, ADMIN_EMAIL, "Alice")
+        gid = make_group(client)
+        add_member(client, gid, "b@x.com", "Bob")
+        add_expense(client, gid, amount="30.00", extra={"participants": ["1", "2"]})
+        # Remove Bob from the split.
+        rv = client.post(f"/groups/{gid}/expenses/1/edit",
+                         data={"title": "Dinner", "amount": "30.00",
+                               "payer_id": 1, "split_type": "equal",
+                               "spent_on": "2025-01-15",
+                               "participants": ["1"]},
+                         follow_redirects=True)
+        assert b"Expense participants updated" in rv.data
+        html = client.get(f"/groups/{gid}").get_data(as_text=True)
+        assert b"Alice" in html.encode() and b"Bob" in html.encode()
+        # Only Alice participates now, so she is owed the full $30 by no one.
+        assert "Everyone is settled up!" in html
+
+    def test_edit_expense_can_add_participant(self, client):
+        # A new member can be added to an existing expense split.
+        signup(client, ADMIN_EMAIL, "Alice")
+        gid = make_group(client)
+        add_member(client, gid, "b@x.com", "Bob")
+        add_expense(client, gid, amount="30.00", extra={"participants": ["1"]})
+        # Add Bob to the split.
+        rv = client.post(f"/groups/{gid}/expenses/1/edit",
+                         data={"title": "Dinner", "amount": "30.00",
+                               "payer_id": 1, "split_type": "equal",
+                               "spent_on": "2025-01-15",
+                               "participants": ["1", "2"]},
+                         follow_redirects=True)
+        assert b"Expense participants updated" in rv.data
+        html = client.get(f"/groups/{gid}").get_data(as_text=True)
+        # Alice paid $30, split equally -> Bob owes Alice $15.
+        assert "Everyone is settled up!" not in html
+        assert "15.00 USD" in html
+        assert "is owed" in html
+        assert "owes" in html
+
+    def test_edit_expense_participants_warns_when_settlements_exist(self, client):
+        # FR-04: changing participants after settlements requires confirmation.
+        signup(client, ADMIN_EMAIL, "Alice")
+        gid = make_group(client)
+        add_member(client, gid, "b@x.com", "Bob")
+        add_expense(client, gid, amount="30.00", extra={"participants": ["1", "2"]})
+        record_settlement(client, gid, from_id=2, to_id=1, amount="15.00")
+        rv = client.post(f"/groups/{gid}/expenses/1/edit",
+                         data={"title": "Dinner", "amount": "30.00",
+                               "payer_id": 1, "split_type": "equal",
+                               "spent_on": "2025-01-15",
+                               "participants": ["1"]})
+        assert b"alter existing settlement" in rv.data
+        # Confirm and complete the edit.
+        rv = client.post(f"/groups/{gid}/expenses/1/edit",
+                         data={"title": "Dinner", "amount": "30.00",
+                               "payer_id": 1, "split_type": "equal",
+                               "spent_on": "2025-01-15",
+                               "participants": ["1"],
+                               "confirm_warning": "yes"},
+                         follow_redirects=True)
+        assert b"Expense updated" in rv.data
+
     def test_edit_expense_recalculates(self, client):
         # FR-03
         signup(client, ADMIN_EMAIL, "Alice")

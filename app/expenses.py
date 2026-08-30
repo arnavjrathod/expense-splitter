@@ -130,6 +130,7 @@ def edit(group_id, group, membership, expense_id):
             except (SplitValidationError, ValueError) as e:
                 flash(str(e))
             else:
+                old_participants = _participants_of(expense_id)
                 db.execute(
                     """UPDATE expenses SET payer_id = ?, title = ?,
                        amount_cents = ?, spent_on = ?, category = ?, notes = ?,
@@ -148,6 +149,9 @@ def edit(group_id, group, membership, expense_id):
                         "share_cents) VALUES (?, ?, ?)",
                         (expense_id, int(uid), cents))
                 db.commit()
+                new_participants = {int(uid) for uid in split_shares}
+                if new_participants != old_participants:
+                    flash("Expense participants updated.")
                 flash("Expense updated.")
                 return redirect(url_for("groups.detail", group_id=group_id))
     return render_template("expenses/form.html", group=group, members=members,
@@ -185,6 +189,14 @@ def _shares_of(expense_id: int) -> dict[str, int]:
         "SELECT user_id, share_cents FROM expense_shares WHERE expense_id = ?",
         (expense_id,)).fetchall()
     return {str(r["user_id"]): r["share_cents"] for r in rows}
+
+
+def _participants_of(expense_id: int) -> set[int]:
+    """Return the set of user ids currently participating in the expense."""
+    rows = get_db().execute(
+        "SELECT user_id FROM expense_shares WHERE expense_id = ? AND share_cents > 0",
+        (expense_id,)).fetchall()
+    return {r["user_id"] for r in rows}
 
 
 def group_balances_safe(group_id: int):
