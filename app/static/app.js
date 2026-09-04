@@ -1,5 +1,28 @@
-// Real-time split discrepancy feedback (FR-02) + delete confirms (FR-04/06/07 UX).
+// Theme switcher + real-time split discrepancy feedback (FR-02) + delete confirms.
 document.addEventListener('DOMContentLoaded', function () {
+  // Theme switcher: light / neon dark mode persisted in localStorage.
+  (function initTheme() {
+    var saved = window.localStorage.getItem('theme');
+    var prefersDark = window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = saved || (prefersDark ? 'neon' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+
+    var toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(theme === 'neon'));
+      toggle.textContent = theme === 'neon' ? '☀ Light' : '⚡ Neon';
+      toggle.addEventListener('click', function () {
+        var current = document.documentElement.getAttribute('data-theme');
+        var next = current === 'neon' ? 'light' : 'neon';
+        document.documentElement.setAttribute('data-theme', next);
+        window.localStorage.setItem('theme', next);
+        toggle.setAttribute('aria-pressed', String(next === 'neon'));
+        toggle.textContent = next === 'neon' ? '☀ Light' : '⚡ Neon';
+      });
+    }
+  })();
+
   // Confirmation prompts on destructive actions
   document.querySelectorAll('form[data-warn]').forEach(function (form) {
     form.addEventListener('submit', function (e) {
