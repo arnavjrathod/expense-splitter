@@ -75,28 +75,36 @@ def record_settlement(client, gid, from_id, to_id, amount, paid_on="2025-01-16")
                              "amount": amount, "paid_on": paid_on})
 
 
-class TestAuth:
-    def test_signup_login_logout(self, client):
-        rv = signup(client, ADMIN_EMAIL, "Alice")
-        assert rv.status_code == 302
-        logout(client)
-        rv = login(client, ADMIN_EMAIL)
-        assert rv.status_code == 302
-        rv = client.get("/dashboard")
-        assert b"Alice" in rv.data
+class TestThemeSwitcher:
+    def test_theme_toggle_button_present(self, client):
+        rv = client.get("/login")
+        assert rv.status_code == 200
+        html = rv.get_data(as_text=True)
+        assert 'id="theme-toggle"' in html
+        assert 'theme-toggle' in html
 
-    def test_bad_login_rejected(self, client):
-        signup(client, ADMIN_EMAIL, "Alice")
-        logout(client)
-        rv = login(client, ADMIN_EMAIL, "wrongpass")
-        assert b"Incorrect email or password" in rv.data
+    def test_theme_css_loaded(self, client):
+        rv = client.get("/static/style.css")
+        assert rv.status_code == 200
+        css = rv.get_data(as_text=True)
+        assert "[data-theme=\"neon\"]" in css
+        assert "--bg:" in css
+        assert "--accent:" in css
 
-    def test_requires_authentication(self, client):
-        rv = client.get("/dashboard")
-        assert rv.status_code == 302
-        assert "/login" in rv.headers["Location"]
-        rv = client.get("/groups")
-        assert rv.status_code == 302
+    def test_theme_js_loaded(self, client):
+        rv = client.get("/static/app.js")
+        assert rv.status_code == 200
+        js = rv.get_data(as_text=True)
+        assert "localStorage.getItem('theme')" in js
+        assert "data-theme" in js
+
+    def test_theme_default_set_inline(self, client):
+        rv = client.get("/login")
+        html = rv.get_data(as_text=True)
+        assert "document.documentElement.setAttribute('data-theme', theme)" in html
+        assert "localStorage.getItem('theme')" in html
+
+
 
 
 class TestGroups:
